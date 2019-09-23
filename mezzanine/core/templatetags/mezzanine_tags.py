@@ -18,14 +18,14 @@ from django.core.files.storage import default_storage
 from django.urls import reverse, resolve, NoReverseMatch
 from django.db.models import Model
 from django.template import Node, Template, TemplateSyntaxError
-from django.template.base import (TOKEN_BLOCK, TOKEN_COMMENT,
-                                  TOKEN_TEXT, TOKEN_VAR, TextNode)
+from django.template.base import TokenType # import (TOKEN_BLOCK, TOKEN_COMMENT,
+                          #        TOKEN_TEXT, TOKEN_VAR, TextNode)
 from django.template.defaultfilters import escape
 from django.template.loader import get_template
 from django.utils import translation
 from django.utils.html import strip_tags
 from django.utils.text import capfirst
-from django.utils.safestring import SafeText, mark_safe
+from django.utils.safestring import SafeString, mark_safe
 
 from mezzanine.conf import settings
 from mezzanine.core.fields import RichTextField
@@ -74,16 +74,16 @@ def initialize_nevercache():
             text = []
             end_tag = "endnevercache"
             tag_mapping = {
-                TOKEN_TEXT: ("", ""),
-                TOKEN_VAR: ("{{", "}}"),
-                TOKEN_BLOCK: ("{%", "%}"),
-                TOKEN_COMMENT: ("{#", "#}"),
+                TokenType.TEXT: ("", ""),
+                TokenType.VAR: ("{{", "}}"),
+                TokenType.BLOCK: ("{%", "%}"),
+                TokenType.COMMENT: ("{#", "#}"),
             }
             delimiter = nevercache_token()
             while parser.tokens:
                 token = parser.next_token()
                 token_type = token.token_type
-                if token_type == TOKEN_BLOCK and token.contents == end_tag:
+                if token_type == TokenType.BLOCK and token.contents == end_tag:
                     return TextNode(delimiter + "".join(text) + delimiter)
                 start, end = tag_mapping[token_type]
                 text.append("%s%s%s" % (start, token.contents, end))
@@ -172,7 +172,7 @@ def ifinstalled(parser, token):
     if app.strip("\"'") not in settings.INSTALLED_APPS:
         while unmatched_end_tag:
             token = parser.tokens.pop(0)
-            if token.token_type == TOKEN_BLOCK:
+            if token.token_type == TokenType.BLOCK:
                 block_name = token.contents.split()[0]
                 if block_name == tag:
                     unmatched_end_tag += 1
@@ -295,7 +295,8 @@ def thumbnail(image_url, width, height, upscale=True, quality=95, left=.5,
         image_url = image_url.replace(settings.MEDIA_URL, "", 1)
     image_dir, image_name = os.path.split(image_url)
     image_prefix, image_ext = os.path.splitext(image_name)
-    filetype = {".png": "PNG", ".gif": "GIF"}.get(image_ext.lower(), "JPEG")
+    image_ext = image_ext.lower()
+    filetype = {".png": "PNG", ".gif": "GIF"}.get(image_ext, "JPEG")
     thumb_name = "%s-%sx%s" % (image_prefix, width, height)
     if not upscale:
         thumb_name += "-no-upscale"
@@ -427,8 +428,9 @@ def thumbnail(image_url, width, height, upscale=True, quality=95, left=.5,
         # absolute.
         if "://" in settings.MEDIA_URL:
             with open(thumb_path, "rb") as f:
-                default_storage.save(unquote(thumb_url), File(f))
-    except Exception:
+                if not default_storage.exists(unquote(thumb_url)):
+                    default_storage.save(unquote(thumb_url), File(f))
+    except Exception as e:
         # If an error occurred, a corrupted image may have been saved,
         # so remove it, otherwise the check for it existing will just
         # return the corrupted image next time it's requested.
@@ -473,14 +475,14 @@ def richtext_filters(content):
     for filter_name in settings.RICHTEXT_FILTERS:
         filter_func = import_dotted_path(filter_name)
         content = filter_func(content)
-        if not isinstance(content, SafeText):
+        if not isinstance(content, SafeString):
             # raise TypeError(
                 # filter_name + " must mark it's return value as safe. See "
                 # "https://docs.djangoproject.com/en/stable/topics/security/"
                 # "#cross-site-scripting-xss-protection")
             import warnings
             warnings.warn(
-                filter_name + " needs to ensure that any untrusted inputs are "
+                filter_name + " needs to insure that any untrusted inputs are "
                 "properly escaped and mark the html it returns as safe. In a "
                 "future release this will cause an exception. See "
                 "https://docs.djangoproject.com/en/stable/topics/security/"
