@@ -54,6 +54,7 @@ jQuery(function($) {
 {% endblock %}
 
 {% block before_content %}
+<script src="{% static "mezzanine/js/admin/ajax_csrf.js" %}"></script>
 {% if user.is_staff and not is_popup and not request.GET.pop %}
 {% admin_dropdown_menu %}
 {% endif %}
@@ -68,9 +69,16 @@ jQuery(function($) {
         <link rel="stylesheet" href="{% static "mezzanine/chosen/chosen.css" %}">
         <script src="{% static "mezzanine/chosen/chosen-0.9.12.jquery.js" %}"></script>
         <script src="{% static "mezzanine/js/admin/navigation.js" %}"></script>
-
+        <script type="text/javascript">
+            if (setupKeywordFields) {
+                jQuery(document).ready(
+                    function() {
+                        setupKeywordFields();
+                    }
+                );
+            }
+        </script>
         {% endif %}
-        <script src="{% static "mezzanine/js/admin/ajax_csrf.js" %}"></script>
         {% if settings.GRAPPELLI_INSTALLED %}
         <script src="{% static "mezzanine/js/admin/collapse_backport.js" %}"></script>
         {% endif %}

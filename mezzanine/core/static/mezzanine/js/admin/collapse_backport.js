@@ -14,7 +14,8 @@ jQuery(function($) {
         $(this).find('h2:first').addClass("collapse-toggle");
     });
     $('h2.collapse-toggle').bind("click", function(e){
-        $(this).parent().toggleClass('collapsed');
+        //apparently Django does this one for us.
+        //$(this).parent().toggleClass('collapsed');
         $(this).parent().toggleClass('collapse-closed');
         $(this).parent().toggleClass('collapse-open');
     });

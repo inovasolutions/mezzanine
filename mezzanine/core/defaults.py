@@ -174,7 +174,7 @@ register_setting(
     description=_("Name of the jQuery file found in "
                   "mezzanine/core/static/mezzanine/js/"),
     editable=False,
-    default="jquery-1.8.3.min.js",
+    default="jquery-3.3.1.min.js",
 )
 
 register_setting(
