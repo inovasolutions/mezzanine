@@ -117,6 +117,11 @@ class SearchableQuerySet(QuerySet):
         if search_fields:
             self._search_fields = search_fields_to_dict(search_fields)
         if not self._search_fields:
+            if isinstance(self.model.search_fields, dict):
+                self._search_fields = self.model.search_fields
+            elif isinstance(self.model.search_fields, list):
+                self._search_fields = search_fields_to_dict(self.model.search_fields)
+        if not self._search_fields:
             return self.none()
 
         # ### BUILD LIST OF TERMS TO SEARCH FOR ###
@@ -169,7 +174,9 @@ class SearchableQuerySet(QuerySet):
         # terms that are explicitly required.
         elif optional:
             queryset = queryset.filter(reduce(ior, optional))
-        return queryset.distinct()
+        d = queryset.distinct()
+        d._search_terms = self._search_terms
+        return d
 
     def _clone(self, *args, **kwargs):
         """
